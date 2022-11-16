@@ -1,4 +1,4 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { AppService } from './app.service';
 
@@ -16,10 +16,5 @@ export class AppController {
   @ApiOkResponse({ description: 'checks health of app' })
   healthCheck(): Promise<any> {
     return this.appService.healthCheck();
-  }
-
-  @Post('jungle_check')
-  csrfCheck(): string {
-    return 'Welcome to the jungle';
   }
 }
