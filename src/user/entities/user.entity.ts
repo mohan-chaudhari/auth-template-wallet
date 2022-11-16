@@ -29,17 +29,8 @@ export class User {
   @Column({ nullable: true })
   loginWallet: string;
 
-  @Column({ default: true })
-  isActive: boolean;
-
   @Column({ default: '' })
   imageUrl: string;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 
   @Column({ nullable: true, default: '' })
   objectID: string;
@@ -47,10 +38,9 @@ export class User {
   @Column({ nullable: true, type: 'decimal' })
   tokenExpirationDate: number;
 
-  // @Column({ nullable: true })
-  // @Exclude({ toPlainOnly: true })
-  // authToken: string;
+  @CreateDateColumn()
+  createdAt: Date;
 
-  // @Column({ nullable: true })
-  // authTokenExpirationDate: Date;
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

@@ -1,8 +1,7 @@
 import { Injectable, UnauthorizedException, Request } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { UserRepository } from 'src/user/repositories/user.repository';
-
+import { Repository } from 'typeorm';
 import { Constants } from 'shared/constants';
 import { User } from 'src/user/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,7 +11,7 @@ import CryptoJS from 'crypto-js';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     @InjectRepository(User)
-    private readonly userRepository: UserRepository,
+    private readonly userRepository: Repository<User>,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([JwtStrategy.extractJWT]),
@@ -30,16 +29,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const bufferObj = Buffer.from(payload.data, 'base64');
     const decodedString = bufferObj.toString('utf8');
 
-    if (decodedString === Constants.USER) {
+    // if (decodedString === Constants.USER) {
       const user = await this.userRepository.findOne({
         where: { walletAddress: payload.walletAddress },
       });
       if (!user) {
         throw new UnauthorizedException('Unauthorized');
       }
-      //  else if (user.isBlocked || !user.isActive || user.isBanned) {
-      //   throw new UnauthorizedException('Unauthorized');
-      // }
 
       return {
         walletAddress: payload.walletAddress,
@@ -47,13 +43,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         data: decodedString,
         userType: payload.data,
       };
-    } else if (decodedString === Constants.ADMIN) {
-      return {
-        username: payload.sub,
-        data: decodedString,
-        userType: payload.data,
-      };
-    }
+    // } 
   }
 
   private static extractJWT(@Request() request): string | null {
