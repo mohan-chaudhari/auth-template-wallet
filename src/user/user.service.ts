@@ -1,16 +1,13 @@
-import {
-  BadRequestException,
-  Injectable,
-} from '@nestjs/common';
-import { User } from './entities/user.entity';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import 'dotenv/config';
-import { AuthTokens } from 'src/auth/entities/auth-token.entity';
-// import { web3 } from 'shared/web3';
-import { CreateUserLoginDto } from './dto/create-user-login.dto';
-import { SignatureDto } from './dto/signature.dto';
-import { NullAddressConstant } from 'shared/constants';
+import { BadRequestException, Injectable } from "@nestjs/common";
+import { User } from "./entities/user.entity";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import "dotenv/config";
+import { AuthTokens } from "src/auth/entities/auth-token.entity";
+import { web3 } from "shared/web3";
+import { CreateUserLoginDto } from "./dto/create-user-login.dto";
+import { SignatureDto } from "./dto/signature.dto";
+import { NullAddressConstant } from "shared/constants";
 
 @Injectable()
 export class UserService {
@@ -18,9 +15,7 @@ export class UserService {
     @InjectRepository(AuthTokens)
     private readonly authTokensRepository: Repository<AuthTokens>,
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    //  @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-
+    private readonly userRepository: Repository<User> //  @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
   /**
@@ -49,14 +44,14 @@ export class UserService {
       const user = await this.userRepository.findOne({
         where: {
           walletAddress: walletAddress,
-        }
+        },
       });
       if (!user) return null;
 
       return user;
     } catch (error) {
       console.log(error);
-      
+
       throw new Error(error);
     }
   }
@@ -68,10 +63,13 @@ export class UserService {
    */
   async updateUserTokenExpirationDate(
     walletAddress: string,
-    tokenExpirationDate: number,
+    tokenExpirationDate: number
   ): Promise<any> {
     try {
-      await this.userRepository.update({ walletAddress }, { tokenExpirationDate });
+      await this.userRepository.update(
+        { walletAddress },
+        { tokenExpirationDate }
+      );
     } catch (error) {
       throw new Error(error);
     }
@@ -80,19 +78,19 @@ export class UserService {
   async updateUserAuthToken(
     authToken: string,
     authTokenExpirationDate: Date,
-    { walletAddress, loginWallet },
+    { walletAddress, loginWallet }
   ): Promise<any> {
     try {
       const tokenExpirationDate = Date.now() + 1000 * 60 * 60 * 24;
 
       await this.updateUserTokenExpirationDate(
         walletAddress,
-        tokenExpirationDate,
+        tokenExpirationDate
       );
 
       await this.authTokensRepository.update(
         { walletAddress, valid: true },
-        { valid: false },
+        { valid: false }
       );
 
       await this.userRepository.update({ walletAddress }, { loginWallet });
@@ -117,31 +115,31 @@ export class UserService {
    * @param wallet_address,signature,signature_message,
    * @returns object with successs or failure of signature authentication
    */
-   async signatureAuth({
+  async signatureAuth({
     wallet_address,
     signature,
     signature_message,
   }: SignatureDto): Promise<any> {
     try {
       if (!signature) {
-        return { errorMessage: 'Please provide the signature' };
+        return { errorMessage: "Please provide the signature" };
       } else {
-        //fetching the wallet address which signed the signature
-        // const signatureAddress = await web3.eth.accounts.recover(
-        //   signature_message,
-        //   signature,
-        // );
+        // fetching the wallet address which signed the signature
+        const signatureAddress = await web3.eth.accounts.recover(
+          signature_message,
+          signature
+        );
 
         // time check for signature
-        const timeStamp = signature_message.split('=').reverse()[0];
+        const timeStamp = signature_message.split("=").reverse()[0];
 
         const timetoCheck = Math.floor(
-          (Date.parse(timeStamp) + 1000 * 60 * 60) / 1000,
+          (Date.parse(timeStamp) + 1000 * 60 * 60) / 1000
         );
 
         const validTime = Math.floor(Date.now() / 1000);
 
-        const action = signature_message.split('&')[0].split('=')[1].trim();
+        const action = signature_message.split("&")[0].split("=")[1].trim();
 
         // Verifying the user with signature
         // if (

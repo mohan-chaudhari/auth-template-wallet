@@ -2,12 +2,12 @@ import { BadRequestException, ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
-import * as cookieParser from "cookie-parser";
-import * as compression from "compression";
+import cookieParser from "cookie-parser";
+import compression from "compression";
 import helmet from "helmet";
-import * as csurf from "csurf";
-import * as xssClean from "xss-clean";
-import * as hpp from "hpp";
+import csurf from "csurf";
+import xssClean from "xss-clean";
+import hpp from "hpp";
 import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./core/httpexception.filter";
 import { ValidationError } from "class-validator";
@@ -21,15 +21,15 @@ async function bootstrap() {
     process.env.STAGE == "dev"
       ? ["GET", "HEAD", "OPTIONS", "DELETE", "POST", "PATCH", "PUT"]
       : ["GET", "HEAD", "OPTIONS", "DELETE"];
-  const csrfProtection = csurf({
-    cookie: {
-      httpOnly: true,
-      secure: true,
-      maxAge: 300,
-      // sameSite: 'none',
-    },
-    ignoreMethods,
-  });
+  // const csrfProtection = csurf({
+  //   cookie: {
+  //     httpOnly: true,
+  //     secure: true,
+  //     maxAge: 300,
+  //     // sameSite: 'none',
+  //   },
+  //   ignoreMethods,
+  // });
   app.set("trust proxy", 1);
   app.setGlobalPrefix("/api/v1");
 
