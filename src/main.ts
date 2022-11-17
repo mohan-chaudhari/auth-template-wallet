@@ -21,15 +21,15 @@ async function bootstrap() {
     process.env.STAGE == "dev"
       ? ["GET", "HEAD", "OPTIONS", "DELETE", "POST", "PATCH", "PUT"]
       : ["GET", "HEAD", "OPTIONS", "DELETE"];
-  // const csrfProtection = csurf({
-  //   cookie: {
-  //     httpOnly: true,
-  //     secure: true,
-  //     maxAge: 300,
-  //     // sameSite: 'none',
-  //   },
-  //   ignoreMethods,
-  // });
+  const csrfProtection = csurf({
+    cookie: {
+      httpOnly: true,
+      secure: true,
+      maxAge: 300,
+      // sameSite: 'none',
+    },
+    ignoreMethods,
+  });
   app.set("trust proxy", 1);
   app.setGlobalPrefix("/api/v1");
 
@@ -42,6 +42,12 @@ async function bootstrap() {
   });
 
   // comment from here
+  app.use((req, res, next) => {
+    if (csrfExcludeRoutes.includes(req.path)) {
+      return next();
+    }
+    csrfProtection(req, res, next);
+  });
 
   app.use((req: any, res: any, next: any) => {
     if (req.csrfToken) {
