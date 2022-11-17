@@ -10,6 +10,7 @@ import {
   UseInterceptors,
   ClassSerializerInterceptor,
   Param,
+  Patch,
 } from '@nestjs/common';
 
 import { UserService } from './user.service';
@@ -28,6 +29,7 @@ import {
 import { JwtAuthGuard } from '../../src/auth/jwt-auth.guard';
 import { CreateUserLoginDto } from './dto/create-user-login.dto';
 import { User } from './entities/user.entity';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('user')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -81,8 +83,9 @@ export class UserController {
   @Post()
   async createUser(
     @Body() createUserLoginDto: CreateUserLoginDto,
-  ): Promise<any> {
+  ): Promise<User> {
     try {
+      // authenticating wallet signature 
       // const verifiedSignature = await this.userService.signatureAuth({
       //   wallet_address: createUserLoginDto.walletAddress,
       //   signature: createUserLoginDto.signature,
@@ -90,6 +93,7 @@ export class UserController {
       // });
       // if (!verifiedSignature) throw new UnauthorizedException();
 
+      // if user then login else create user
       let user = await this.userService.findUserDetails(createUserLoginDto.walletAddress);
       if (user) {
         const details = await this.authService.createUserToken(
@@ -103,14 +107,7 @@ export class UserController {
           createUserLoginDto,
         );
 
-        return this.responseModel.response(
-          {
-            ...details,
-            tokenExpirationDate: Date.now() + 1000 * 60 * 60 * 24,
-          },
-          ResponseStatusCode.OK,
-          true,
-        );
+        return details;
       } else {
         user = await this.userService.createUser(createUserLoginDto);
 
@@ -125,23 +122,10 @@ export class UserController {
           createUserLoginDto,
         );
 
-        return this.responseModel.response(
-          {
-            ...details,
-            tokenExpirationDate: Date.now() + 1000 * 60 * 60 * 24,
-          },
-          ResponseStatusCode.CREATED,
-          true,
-        );
+        return details; 
       }
     } catch (error) {
-      console.log(error);
-      
-      return this.responseModel.response(
-        error,
-        ResponseStatusCode.INTERNAL_SERVER_ERROR,
-        false,
-      );
+      throw new Error(error);
     }
   }
 
@@ -149,7 +133,7 @@ export class UserController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('/logout')
-  async logOut(@Request() request): Promise<any> {
+  async logOut(@Request() request): Promise<object> {
     try {
       await this.userService.updateUserAuthToken(
         null,
@@ -163,53 +147,78 @@ export class UserController {
         true,
       );
     } catch (error) {
-      return this.responseModel.response(
-        error,
-        ResponseStatusCode.INTERNAL_SERVER_ERROR,
-        false,
-      );
+      throw new Error(error);
     }
   }
 
-    /**
-   * @description getUserDetailsByWalletAddress will fetch the user details with given wallet address
-   * @param createUserDto
-   * @returns it will return user details
-   */
-     @ApiTags('User Module')
-     @ApiOperation({ summary: 'Get User Details with given Wallet Address' })
-     @ApiResponse({
-       status: ResponseStatusCode.NOT_FOUND,
-       description: ResponseMessage.USER_DOES_NOT_EXISTS_WITH_GIVEN_WALLET_ADDRESS,
-     })
-     @ApiResponse({ status: ResponseStatusCode.OK, description: 'User Details' })
-     @ApiResponse({
-       status: ResponseStatusCode.INTERNAL_SERVER_ERROR,
-       description: ResponseMessage.INTERNAL_SERVER_ERROR,
-     })
-     @Get('/userdetails/walletaddress/:walletAddress')
-     async getUserDetailsByWalletAddress(
-       @Param('walletAddress') walletAddress: string,
-     ): Promise<any> {
-       try {
-         const user: User = await this.userService.findUserDetails(
-           walletAddress,
-         );
-         if (!user) {
-           return this.responseModel.response(
-             ResponseMessage.USER_DOES_NOT_EXISTS_WITH_GIVEN_WALLET_ADDRESS,
-             ResponseStatusCode.NOT_FOUND,
-             false,
-           );
-         } else {
-           return this.responseModel.response(user, ResponseStatusCode.OK, true);
-         }
-       } catch (error) {
-         return this.responseModel.response(
-           error,
-           ResponseStatusCode.INTERNAL_SERVER_ERROR,
-           false,
-         );
-       }
-     }
+  /**
+  * @description getUserDetailsByWalletAddress will fetch the user details with given wallet address
+  * @param createUserDto
+  * @returns it will return user details
+  */
+  @ApiTags('User Module')
+  @ApiOperation({ summary: 'Get User Details with given Wallet Address' })
+  @ApiResponse({ status: ResponseStatusCode.OK, description: 'User Details' })
+  @ApiResponse({
+    status: ResponseStatusCode.INTERNAL_SERVER_ERROR,
+    description: ResponseMessage.INTERNAL_SERVER_ERROR,
+  })
+  @Get('/walletaddress/:walletAddress')
+  async getUserDetailsByWalletAddress(
+      @Param('walletAddress') walletAddress: string,
+      @Request() request,
+    ): Promise<User> {
+      try {
+        const user: User = await this.userService.findUserDetails(
+          walletAddress,
+        );
+        return user
+      } catch (error) {
+        throw new Error(error);
+      }
+  }
+
+  /**
+  * @description updateUser will update the user details
+  * @param UpdateUserDto
+  * @returns it will return user details
+  */
+  @Patch('/update')
+  @UseGuards(JwtAuthGuard)
+  @ApiTags('User Module')
+  @ApiOperation({ summary: 'Update User Details who is currenlty Logged In' })
+  @ApiResponse({
+    status: ResponseStatusCode.OK,
+    description: ResponseMessage.USER_DETAILS,
+  })
+  @ApiResponse({
+    status: ResponseStatusCode.INTERNAL_SERVER_ERROR,
+    description: ResponseMessage.INTERNAL_SERVER_ERROR,
+  })
+  @ApiBearerAuth()
+  async updateUser(
+    @Body() updateUserDto: UpdateUserDto,
+    @Request() request,
+    ): Promise<string> {
+    try {
+      const authorization = await this.authService.validateUserToken(
+        request.headers.authorization.replace('Bearer ', ''),
+        request.user.walletAddress,
+        request.user.userType,
+      );
+  
+      if (!authorization) {
+        throw new UnauthorizedException('Unauthorized');
+      }
+   
+      const data = await this.userService.updateUser(
+        request.user.walletAddress,
+        updateUserDto,
+      );
+      return data;
+    } catch (error) {
+      throw new Error(error);
+    }
+  }
+   
 }

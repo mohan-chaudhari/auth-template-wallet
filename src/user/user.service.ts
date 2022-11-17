@@ -1,19 +1,19 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, CACHE_MANAGER, Inject, Injectable } from "@nestjs/common";
 import { User } from "./entities/user.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import "dotenv/config";
-import { AuthTokens } from "src/auth/entities/auth-token.entity";
 import { web3 } from "shared/web3";
 import { CreateUserLoginDto } from "./dto/create-user-login.dto";
 import { SignatureDto } from "./dto/signature.dto";
 import { NullAddressConstant } from "shared/constants";
+import { caching, Cache } from 'cache-manager';
+import { UpdateUserDto } from "./dto/update-user.dto";
 
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepository(AuthTokens)
-    private readonly authTokensRepository: Repository<AuthTokens>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
     @InjectRepository(User)
     private readonly userRepository: Repository<User> //  @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
@@ -51,26 +51,6 @@ export class UserService {
       return user;
     } catch (error) {
       console.log(error);
-
-      throw new Error(error);
-    }
-  }
-
-  /**
-   * @description updateUserTokenExpirationDate will update the user tokenExpirationDate with given wallet address
-   * @param walletAddress
-   * @param tokenExpirationDate
-   */
-  async updateUserTokenExpirationDate(
-    walletAddress: string,
-    tokenExpirationDate: number
-  ): Promise<any> {
-    try {
-      await this.userRepository.update(
-        { walletAddress },
-        { tokenExpirationDate }
-      );
-    } catch (error) {
       throw new Error(error);
     }
   }
@@ -79,34 +59,19 @@ export class UserService {
     authToken: string,
     authTokenExpirationDate: Date,
     { walletAddress, loginWallet }
-  ): Promise<any> {
+  ): Promise<boolean> {
     try {
-      const tokenExpirationDate = Date.now() + 1000 * 60 * 60 * 24;
-
-      await this.updateUserTokenExpirationDate(
-        walletAddress,
-        tokenExpirationDate
-      );
-
-      await this.authTokensRepository.update(
-        { walletAddress, valid: true },
-        { valid: false }
-      );
-
-      await this.userRepository.update({ walletAddress }, { loginWallet });
-
       if (authToken) {
-        const newAuthToken = new AuthTokens();
-
-        newAuthToken.authToken = authToken;
-        newAuthToken.walletAddress = walletAddress;
-
-        await this.authTokensRepository.save(newAuthToken);
+        await this.cacheManager.set(walletAddress, authToken)
+        const value = await this.cacheManager.get(walletAddress);
+      }
+       else {
+        const value = await this.cacheManager.del(walletAddress);
       }
 
       return true;
     } catch (error) {
-      console.log(error);
+      throw new Error(error);
     }
   }
 
@@ -119,10 +84,10 @@ export class UserService {
     wallet_address,
     signature,
     signature_message,
-  }: SignatureDto): Promise<any> {
+  }: SignatureDto): Promise<boolean> {
     try {
       if (!signature) {
-        return { errorMessage: "Please provide the signature" };
+        // return { errorMessage: "Please provide the signature" };
       } else {
         // fetching the wallet address which signed the signature
         const signatureAddress = await web3.eth.accounts.recover(
@@ -142,33 +107,37 @@ export class UserService {
         const action = signature_message.split("&")[0].split("=")[1].trim();
 
         // Verifying the user with signature
-        // if (
-        //   wallet_address === signatureAddress &&
-        //   timetoCheck > validTime &&
-        //   action === 'signIn'
-        // ) {
-        //   return true;
-        // } else {
-        //   return false;
-        // }
+        if (
+          wallet_address === signatureAddress &&
+          timetoCheck > validTime &&
+          action === 'signIn'
+        ) {
+          return true;
+        } else {
+          return false;
+        }
       }
     } catch (err) {
       throw new BadRequestException(err.message);
     }
   }
 
-  //   /**
-  //  * @description findUserByWalletAddress will return user details with given wallet address or null if there is no user with given wallet address
-  //  * @param walletAddress
-  //  * @returns it will return user details or null
-  //  */
-  //    async findUserByWalletAddress(walletAddress: string): Promise<User> {
-  //     try {
-  //       const user = await this.userRepository.findOne({where: {walletAddress}});
-  //       if (!user) return null;
-  //       return user;
-  //     } catch (error) {
-  //       throw new Error(error);
-  //     }
-  //   }
+  /**
+   * @description update will update the user details
+   * @param UpdateUserDto
+   * @returns it will return user details
+   */
+  async updateUser(
+    walletAddress: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<string> {
+    try {
+      const data = await this.userRepository.update({walletAddress},updateUserDto);
+      if (data.affected > 0) return 'User Updated';
+
+      return 'User not Updated';
+    } catch (error) {
+      throw new Error(error);
+    }
+  }
 }

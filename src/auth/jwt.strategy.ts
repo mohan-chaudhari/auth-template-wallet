@@ -25,7 +25,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * @param payload
    * @returns user or admin details
    */
-  async validate(payload: any): Promise<any> {
+  async validate(payload: any ): Promise<any> {
     const bufferObj = Buffer.from(payload.data, 'base64');
     const decodedString = bufferObj.toString('utf8');
 

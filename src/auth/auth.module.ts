@@ -7,9 +7,6 @@ import { Constants } from '../../shared/constants';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
 
-// import { Admin } from 'src/admin/entities/admin.entity';
-import { AuthTokens } from './entities/auth-token.entity';
-
 @Module({
   imports: [
     JwtModule.register({
@@ -18,8 +15,6 @@ import { AuthTokens } from './entities/auth-token.entity';
     }),
     TypeOrmModule.forFeature([
       User,
-      // Admin,
-      AuthTokens
     ]),
   ],
   providers: [AuthService, JwtStrategy],

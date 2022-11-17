@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
+import { MiddlewareConsumer, Module, NestModule, CacheModule, CacheInterceptor } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
@@ -9,7 +9,6 @@ import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { UserModule } from "./user/user.module";
 import { ResponseModel } from "./responseModel";
 import { AuthModule } from "./auth/auth.module";
-
 import { ScheduleModule } from "@nestjs/schedule";
 import { LoggingInterceptor } from "./core/logging-interceptor";
 
@@ -31,16 +30,11 @@ import { LoggingInterceptor } from "./core/logging-interceptor";
       }),
     }),
 
-    // CacheModule.register({
-    //   isGlobal: true,
-    //   ttl: 60,
-    //   max: 1000,
-    //   store: redisStore,
-    //   socket: {
-    //     host: '127.0.0.1', //process.env.REDIS_HOST,
-    //     port: 6379, //process.env.REDIS_PORT,
-    //   },
-    // }),
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 60 * 60 * 24, //in seconds
+      max: 60 * 60 * 24,
+    }),
 
     DatabaseModule,
     UserModule,
@@ -54,10 +48,10 @@ import { LoggingInterceptor } from "./core/logging-interceptor";
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
-    // {
-    //   provide: APP_INTERCEPTOR,
-    //   useClass: CacheInterceptor,
-    // },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: CacheInterceptor,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,

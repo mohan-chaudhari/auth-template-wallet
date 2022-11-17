@@ -1,20 +1,19 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { CACHE_MANAGER, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Constants } from '../../shared/constants';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../../src/user/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AuthTokens } from './entities/auth-token.entity';
 import * as CryptoJS from 'crypto-js';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class AuthService {
   constructor(
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly jwtService: JwtService,
     @InjectRepository(User)
     private readonly userEntityRepository: Repository<User>,
-    @InjectRepository(AuthTokens)
-    private authTokensRepository: Repository<AuthTokens>,
   ) {}
 
   /**
@@ -57,6 +56,36 @@ export class AuthService {
       console.log(error);
       
       throw new Error(error);
+    }
+  }
+
+  async validateUserToken(
+    token: string,
+    walletAddress: string,
+    userType: string,
+  ): Promise<any> {
+    try {
+      if (!token) {
+        return false;
+      }
+
+      const authToken: string = await this.cacheManager.get(walletAddress)
+
+      if (!authToken) {
+        return false;
+      }
+
+      const userAuthToken = Buffer.from(authToken, 'base64').toString(
+        'ascii',
+      );
+
+      if (userAuthToken === token) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.log(error);
     }
   }
 }
