@@ -32,12 +32,6 @@ export class User {
   @Column({ default: '' })
   imageUrl: string;
 
-  @Column({ nullable: true, default: '' })
-  objectID: string;
-
-  @Column({ nullable: true, type: 'decimal' })
-  tokenExpirationDate: number;
-
   @CreateDateColumn()
   createdAt: Date;
 
