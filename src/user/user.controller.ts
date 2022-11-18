@@ -167,8 +167,7 @@ export class UserController {
   })
   @Get("/walletaddress/:walletAddress")
   async getUserDetailsByWalletAddress(
-    @Param("walletAddress") walletAddress: string,
-    @Request() request
+    @Param("walletAddress") walletAddress: string
   ): Promise<User> {
     try {
       const user: User = await this.userService.findUserDetails(walletAddress);
