@@ -1,4 +1,9 @@
-import { BadRequestException, CACHE_MANAGER, Inject, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  CACHE_MANAGER,
+  Inject,
+  Injectable,
+} from "@nestjs/common";
 import { User } from "./entities/user.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
@@ -7,7 +12,7 @@ import { web3 } from "shared/web3";
 import { CreateUserLoginDto } from "./dto/create-user-login.dto";
 import { SignatureDto } from "./dto/signature.dto";
 import { NullAddressConstant } from "shared/constants";
-import { caching, Cache } from 'cache-manager';
+import { caching, Cache } from "cache-manager";
 import { UpdateUserDto } from "./dto/update-user.dto";
 
 @Injectable()
@@ -62,11 +67,9 @@ export class UserService {
   ): Promise<boolean> {
     try {
       if (authToken) {
-        await this.cacheManager.set(walletAddress, authToken)
-        const value = await this.cacheManager.get(walletAddress);
-      }
-       else {
-        const value = await this.cacheManager.del(walletAddress);
+        await this.cacheManager.set(walletAddress, authToken);
+      } else {
+        await this.cacheManager.del(walletAddress);
       }
 
       return true;
@@ -110,7 +113,7 @@ export class UserService {
         if (
           wallet_address === signatureAddress &&
           timetoCheck > validTime &&
-          action === 'signIn'
+          action === "signIn"
         ) {
           return true;
         } else {
@@ -129,13 +132,16 @@ export class UserService {
    */
   async updateUser(
     walletAddress: string,
-    updateUserDto: UpdateUserDto,
+    updateUserDto: UpdateUserDto
   ): Promise<string> {
     try {
-      const data = await this.userRepository.update({walletAddress},updateUserDto);
-      if (data.affected > 0) return 'User Updated';
+      const data = await this.userRepository.update(
+        { walletAddress },
+        updateUserDto
+      );
+      if (data.affected > 0) return "User Updated";
 
-      return 'User not Updated';
+      return "User not Updated";
     } catch (error) {
       throw new Error(error);
     }
